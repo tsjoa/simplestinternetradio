@@ -89,16 +89,22 @@ On the back of the PCM5102A breakout board, there are four sets of three-pad jum
 
 ### Step 2: Wire the Hardware
 
-Pop the ESP32-S3 Super Mini and the PCM5102A onto your mini breadboard, and connect them using your jumper wires:
+Pop your development board and the PCM5102A onto your mini breadboard, and connect them using your jumper wires. 
 
-| ESP32-S3 Super Mini Pin | PCM5102A DAC Pin | Function / Description |
-| :--- | :--- | :--- |
-| **VIN** (or VBUS) | **5V** (or VCC) | Main power supply |
-| **GND** | **GND** | System ground |
-| *N/A* (Ground loop) | **SCK** ➔ **GND** | Forces the DAC to generate its own internal clock |
-| **GPIO5** | **LCK** (LRCK) | Left/Right Clock (I2S) |
-| **GPIO6** | **DIN** | Data In (I2S) |
-| **GPIO7** | **BCK** | Bit Clock (I2S) |
+Here are the pin connections for both the **ESP32-S3 Super Mini** and the **ESP32-C3 Super Mini**:
+
+| PCM5102A DAC Pin | ESP32-S3 Super Mini | ESP32-C3 Super Mini | Function / Description |
+| :--- | :--- | :--- | :--- |
+| **VCC** (3.3V) | **3V3** | **3V3** (Right side Pin 1) | Main power supply (3.3V) |
+| **GND** | **GND** | **GND** (Left side Pin 2 or Right side Pin 2) | System ground |
+| **SCK** ➔ **GND** | *N/A* (Ground loop) | *N/A* (Ground loop) | Forces the DAC to generate its own internal clock |
+| **LCK** (LRCK) | **GPIO5** | **GPIO10** (Left side Pin 3) | Left/Right Clock (I2S) |
+| **DIN** | **GPIO6** | **GPIO20** (Right side Pin 5) | Data In (I2S) |
+| **BCK** | **GPIO7** | **GPIO21** (Right side Pin 4) | Bit Clock (I2S) |
+
+> [!IMPORTANT]
+> Since the ESP32-C3 Super Mini uses **GPIO 20** and **GPIO 21** for I2S, which are the default hardware serial UART pins, the configuration redirects the `logger` output to the native USB port (`USB_SERIAL_JTAG`). This avoids any digital noise or interference (loud screeching or stuttering) from debug logs.
+
 
 *Finally, connect the DAC's 3.5mm audio jack to your stereo's `AUX` or `Line In` port using your audio cable.*
 
@@ -107,22 +113,32 @@ Pop the ESP32-S3 Super Mini and the PCM5102A onto your mini breadboard, and conn
 ## 💻 Software Deployment
 
 ### 1. Copy the ESPHome Configuration
-Use the configuration in [Simplest Internet Radio HomeAssistant.yaml](Simplest%20Internet%20Radio%20HomeAssistant.yaml). Ensure your Wi-Fi details, API keys, and OTA passwords are configured in your ESPHome `secrets.yaml` file.
+Select the appropriate configuration file for your micro-controller:
+*   **For ESP32-S3 (Recommended):** Use [Simplest Internet Radio HomeAssistant.yaml](Simplest%20Internet%20Radio%20HomeAssistant.yaml).
+*   **For ESP32-C3:** Use [Simplest Internet Radio ESP32-C3.yaml](Simplest%20Internet%20Radio%20ESP32-C3.yaml).
 
-### 2. Clean Build (Mandatory)
-Before compiling, you must perform a clean build to ensure low-level PSRAM changes are applied:
+Ensure your Wi-Fi details, API keys, and OTA passwords are configured in your ESPHome `secrets.yaml` file.
+
+### 2. Clean Build (Mandatory for ESP32-S3)
+Before compiling, you must perform a clean build to apply low-level changes (like PSRAM/SPIRAM enablement for the S3):
 1. Open your ESPHome Dashboard.
-2. Click the three dots on the device card (`esp32-stereo-link`).
+2. Click the three dots on the device card (`esp32-stereo-link` or `esp32-c3-stereo-link`).
 3. Select **Clean Build**.
 
 ### 3. Compile and Download
-Compile the configuration and download the **factory binary file** (`esp32-stereo-link-firmware.factory.bin`) to your local computer.
+Compile the configuration and download the **factory binary file** to your local computer (e.g., `esp32-stereo-link-firmware.factory.bin` or `esp32-c3-stereo-link-firmware.factory.bin`).
 
 ### 4. Flash the Board
-Connect the ESP32-S3 Super Mini to your computer via USB. Run the following command in your terminal to flash the board, bypassing the missing system stub layout file:
+Connect your board to your computer via USB and run the command matching your chip:
 
+#### For ESP32-S3:
 ```bash
 sudo esptool --chip esp32s3 --no-stub --port /dev/ttyACM0 write_flash -z 0x0 ~/Downloads/esp32-stereo-link-firmware.factory.bin
+```
+
+#### For ESP32-C3:
+```bash
+sudo esptool --chip esp32c3 --no-stub --port /dev/ttyACM0 write_flash -z 0x0 ~/Downloads/esp32-c3-stereo-link-firmware.factory.bin
 ```
 *(Adjust `/dev/ttyACM0` and the file path according to your OS and download location).*
 

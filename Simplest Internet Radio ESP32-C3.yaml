@@ -1,0 +1,68 @@
+substitutions:
+  id_prefix: esp32-c3-stereo-link
+  friendly_name: "Stereo Internet Radio C3"
+
+ota:
+  platform: esphome
+  password: !secret ota_password
+
+esphome:
+  name: ${id_prefix}
+  friendly_name: ${friendly_name}
+  comment: "ESP32-C3: Internet Radio Streamer (No PSRAM)"
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: ${friendly_name}
+    password: !secret ap_password
+    ap_timeout: 15s
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+web_server:
+  port: 80
+
+# -------------------------------------------------------------------
+# LOGGER CONFIGURATION
+# -------------------------------------------------------------------
+# Redirects logging to the native USB port to free up GPIO20 and GPIO21 for I2S
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+# -------------------------------------------------------------------
+# DIGITAL AUDIO (I2S) PIPELINE CONFIGURATION
+# -------------------------------------------------------------------
+i2s_audio:
+  - id: i2s_bus
+    i2s_lrclk_pin: GPIO10    # Wired to LCK (LRCK) (Left side Pin 3)
+    i2s_bclk_pin: GPIO21     # Wired to BCK (Right side Pin 4)
+
+speaker:
+  - platform: i2s_audio
+    id: stereo_dac
+    i2s_audio_id: i2s_bus
+    i2s_dout_pin: GPIO20     # Wired to DIN (Right side Pin 5)
+    dac_type: external
+    i2s_comm_fmt: i2s_msb
+    channel: stereo
+    # Buffer duration is set to 100ms to comfortably fit inside internal SRAM (no PSRAM)
+    buffer_duration: 100ms   
+
+# -------------------------------------------------------------------
+# HOME ASSISTANT MEDIA PLAYER ENTITY
+# -------------------------------------------------------------------
+media_player:
+  - platform: speaker
+    name: ${friendly_name}
+    id: media_streamer       
+    announcement_pipeline:
+      speaker: stereo_dac
